@@ -1,0 +1,316 @@
+-- Create table
+create table BAKARICOMPANY
+(
+  id                  NUMBER generated always as identity,
+  nameorganization    VARCHAR2(200),
+  organizationaddress VARCHAR2(200)
+)
+tablespace SYSTEM
+  pctfree 10
+  pctused 40
+  initrans 1
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    next 1M
+    minextents 1
+    maxextents unlimited
+  );
+-- Create/Recreate primary, unique and foreign key constraints 
+alter table BAKARICOMPANY
+  add constraint PK_COMPANY_ID primary key (ID)
+  using index 
+  tablespace SYSTEM
+  pctfree 10
+  initrans 2
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    next 1M
+    minextents 1
+    maxextents unlimited
+  );
+
+
+
+
+-- Create table
+create table BAKARIMANAGER
+(
+  id          NUMBER generated always as identity,
+  managername VARCHAR2(200) not null
+)
+tablespace SYSTEM
+  pctfree 10
+  pctused 40
+  initrans 1
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    next 1M
+    minextents 1
+    maxextents unlimited
+  );
+-- Create/Recreate primary, unique and foreign key constraints 
+alter table BAKARIMANAGER
+  add constraint PK_MANAGER_ID primary key (ID)
+  using index 
+  tablespace SYSTEM
+  pctfree 10
+  initrans 2
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    next 1M
+    minextents 1
+    maxextents unlimited
+  );
+
+
+
+
+-- Create table
+create table BAKARIOPERATOR
+(
+  id        NUMBER generated always as identity,
+  sawyobiid NUMBER
+)
+tablespace SYSTEM
+  pctfree 10
+  pctused 40
+  initrans 1
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    next 1M
+    minextents 1
+    maxextents unlimited
+  );
+-- Create/Recreate primary, unique and foreign key constraints 
+alter table BAKARIOPERATOR
+  add constraint PK_OPERATOR primary key (ID)
+  using index 
+  tablespace SYSTEM
+  pctfree 10
+  initrans 2
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    next 1M
+    minextents 1
+    maxextents unlimited
+  );
+alter table BAKARIOPERATOR
+  add constraint FK_BSTORE_ID foreign key (SAWYOBIID)
+  references BAKARISTORE (ID);
+
+
+
+
+-- Create table
+create table BAKARIPRODUCT
+(
+  id            NUMBER generated always as identity,
+  barcode       VARCHAR2(200),
+  productname   VARCHAR2(200),
+  quantity      NUMBER,
+  dateofentry   VARCHAR2(200),
+  storeid       NUMBER,
+  productsellid NUMBER
+)
+tablespace SYSTEM
+  pctfree 10
+  pctused 40
+  initrans 1
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    next 1M
+    minextents 1
+    maxextents unlimited
+  );
+-- Create/Recreate primary, unique and foreign key constraints 
+alter table BAKARIPRODUCT
+  add constraint PK_PRODUCT_ID primary key (ID)
+  using index 
+  tablespace SYSTEM
+  pctfree 10
+  initrans 2
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    next 1M
+    minextents 1
+    maxextents unlimited
+  );
+alter table BAKARIPRODUCT
+  add constraint FK_PRODUCTSEEL_ID foreign key (PRODUCTSELLID)
+  references BAKARIPRODUCTSELL (ID);
+alter table BAKARIPRODUCT
+  add constraint FK_STORE_ID foreign key (STOREID)
+  references BAKARISTORE (ID);
+
+
+
+
+
+
+
+
+-- Create table
+create table BAKARIPRODUCTSELL
+(
+  id          NUMBER generated always as identity,
+  barcode     VARCHAR2(200),
+  productname VARCHAR2(200),
+  quantity    NUMBER,
+  dateofentry VARCHAR2(200),
+  storeid     NUMBER,
+  productid   NUMBER
+)
+tablespace SYSTEM
+  pctfree 10
+  pctused 40
+  initrans 1
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    next 1M
+    minextents 1
+    maxextents unlimited
+  );
+-- Create/Recreate primary, unique and foreign key constraints 
+alter table BAKARIPRODUCTSELL
+  add constraint PK_BAKARIPRODUCTSELL primary key (ID)
+  using index 
+  tablespace SYSTEM
+  pctfree 10
+  initrans 2
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    next 1M
+    minextents 1
+    maxextents unlimited
+  );
+alter table BAKARIPRODUCTSELL
+  add constraint FK_BAKARIPRODUCTI_ID foreign key (PRODUCTID)
+  references BAKARIPRODUCT (ID);
+alter table BAKARIPRODUCTSELL
+  add constraint FK_BAKARISTOREID_ID foreign key (STOREID)
+  references BAKARISTORE (ID);
+
+
+
+
+
+
+-- Create table
+create table BAKARIREGISTER
+(
+  id           NUMBER generated always as identity,
+  username     VARCHAR2(200),
+  password     VARCHAR2(200),
+  nameemployee VARCHAR2(200),
+  lastemployee VARCHAR2(200),
+  email        VARCHAR2(200),
+  phonenumber  VARCHAR2(200),
+  role         NUMBER,
+  companyid    NUMBER,
+  managerid    NUMBER,
+  operatorid   NUMBER
+)
+tablespace SYSTEM
+  pctfree 10
+  pctused 40
+  initrans 1
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    next 1M
+    minextents 1
+    maxextents unlimited
+  );
+-- Create/Recreate primary, unique and foreign key constraints 
+alter table BAKARIREGISTER
+  add constraint PK_REGISTER_ID primary key (ID)
+  using index 
+  tablespace SYSTEM
+  pctfree 10
+  initrans 2
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    next 1M
+    minextents 1
+    maxextents unlimited
+  );
+alter table BAKARIREGISTER
+  add constraint FK_MANAGER_ID foreign key (MANAGERID)
+  references BAKARIMANAGER (ID);
+alter table BAKARIREGISTER
+  add constraint FK_OPERATOR_ID foreign key (OPERATORID)
+  references BAKARIOPERATOR (ID);
+alter table BAKARIREGISTER
+  add constraint FK_REGIASTERI_ID foreign key (COMPANYID)
+  references BAKARICOMPANY (ID);
+
+
+
+
+
+
+-- Create table
+create table BAKARISTORE
+(
+  id              NUMBER generated always as identity,
+  storename       VARCHAR2(200),
+  storeadress     VARCHAR2(200),
+  storemanagerid  NUMBER,
+  storeoperatorid NUMBER
+)
+tablespace SYSTEM
+  pctfree 10
+  pctused 40
+  initrans 1
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    next 1M
+    minextents 1
+    maxextents unlimited
+  );
+-- Create/Recreate primary, unique and foreign key constraints 
+alter table BAKARISTORE
+  add constraint PK_STORES_ID primary key (ID)
+  using index 
+  tablespace SYSTEM
+  pctfree 10
+  initrans 2
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    next 1M
+    minextents 1
+    maxextents unlimited
+  );
+alter table BAKARISTORE
+  add constraint FK_MANAGERID foreign key (STOREMANAGERID)
+  references BAKARIMANAGER (ID);
+alter table BAKARISTORE
+  add constraint FK_OPERATORID foreign key (STOREOPERATORID)
+  references BAKARIOPERATOR (ID);

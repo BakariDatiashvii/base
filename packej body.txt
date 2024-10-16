@@ -1,0 +1,750 @@
+CREATE OR REPLACE NONEDITIONABLE PACKAGE BODY PKG_BAKARI_USER_REGISTER IS
+
+  PROCEDURE RegisterCompany(
+    p_username           IN VARCHAR2,
+    p_password           IN VARCHAR2,
+    p_nameEmployee       IN VARCHAR2,
+    p_lastEmployee       IN VARCHAR2,
+    p_nameOrganization   IN VARCHAR2,
+    p_organizationAddress IN VARCHAR2,
+    p_email              IN VARCHAR2,
+    p_phoneNumber        IN VARCHAR2,
+    p_role               IN NUMBER
+  ) IS
+    v_companyID NUMBER;
+  BEGIN
+    
+    INSERT INTO BAKARICOMPANY (NAMEORGANIZATION, ORGANIZATIONADDRESS)
+    VALUES (p_nameOrganization, p_organizationAddress)
+    RETURNING ID INTO v_companyID;
+
+    
+    INSERT INTO BAKARIREGISTER (
+      USERNAME, PASSWORD, NAMEEMPLOYEE, LASTEMPLOYEE, EMAIL, PHONENUMBER, ROLE, COMPANYID
+    ) VALUES (
+      p_username, p_password, p_nameEmployee, p_lastEmployee, p_email, p_phoneNumber, p_role, v_companyID
+    );
+
+    
+    COMMIT;
+  EXCEPTION
+    WHEN OTHERS THEN
+      
+      ROLLBACK;
+      RAISE;
+  END RegisterCompany;
+  
+    PROCEDURE RegisterManager(
+     p_username      IN VARCHAR2,
+    p_password      IN VARCHAR2,
+    p_nameEmployee  IN VARCHAR2,
+    p_lastEmployee  IN VARCHAR2,
+    p_email         IN VARCHAR2,
+    p_phoneNumber   IN VARCHAR2,
+    p_companyid     IN NUMBER,
+    p_role          IN NUMBER
+  ) IS
+    v_managerID NUMBER;
+  BEGIN
+  
+    INSERT INTO BAKARIMANAGER (MANAGERNAME)
+    VALUES (p_nameEmployee)
+    RETURNING ID INTO v_managerID;
+
+    
+    INSERT INTO BAKARIREGISTER (
+      USERNAME, PASSWORD, NAMEEMPLOYEE, LASTEMPLOYEE, EMAIL, PHONENUMBER, ROLE, MANAGERID ,COMPANYID
+    ) VALUES (
+      p_username, p_password, p_nameEmployee, p_lastEmployee, p_email, p_phoneNumber, p_role, v_managerID , p_companyid
+    );
+
+  
+    COMMIT;
+  EXCEPTION
+    WHEN OTHERS THEN
+     
+      ROLLBACK;
+      RAISE;
+  END RegisterManager;
+
+
+
+
+  
+  
+ PROCEDURE LoginCompany(
+    p_username    IN  VARCHAR2,
+    p_password    IN  VARCHAR2,
+    p_user_id     OUT NUMBER,
+    p_role        OUT NUMBER,
+    p_manager_id  OUT NUMBER,
+    p_operator_id OUT NUMBER,
+    p_company_id  OUT NUMBER  
+) IS
+    v_password    BAKARIREGISTER.PASSWORD%TYPE;
+    v_role        BAKARIREGISTER.ROLE%TYPE;
+    v_manager_id  BAKARIREGISTER.MANAGERID%TYPE;
+    v_operator_id BAKARIREGISTER.OPERATORID%TYPE;
+    v_company_id  BAKARIREGISTER.COMPANYID%TYPE;  
+BEGIN
+   
+    SELECT PASSWORD, ROLE, MANAGERID, OPERATORID, COMPANYID INTO v_password, v_role, v_manager_id, v_operator_id, v_company_id
+    FROM BAKARIREGISTER
+    WHERE USERNAME = p_username;
+
+   
+    IF v_password = p_password THEN
+       
+        SELECT ID INTO p_user_id
+        FROM BAKARIREGISTER
+        WHERE USERNAME = p_username;
+
+        p_role := v_role;
+        p_manager_id := v_manager_id;
+        p_operator_id := v_operator_id;
+        p_company_id := v_company_id;  
+    ELSE
+        
+        RAISE_APPLICATION_ERROR(-20001, 'Invalid username or password');
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        
+        RAISE_APPLICATION_ERROR(-20002, 'User not found');
+    WHEN OTHERS THEN
+       
+        RAISE;
+END LoginCompany;
+
+
+  
+  
+  
+   PROCEDURE RegisterOperator(
+  p_username           IN VARCHAR2,
+  p_password           IN VARCHAR2,
+  p_nameEmployee       IN VARCHAR2,
+  p_lastEmployee       IN VARCHAR2,
+  p_email              IN VARCHAR2,
+  p_phoneNumber        IN VARCHAR2,
+  p_role               IN NUMBER,
+  p_companyid          IN NUMBER,
+  p_sawyobiID          IN NUMBER
+) IS
+  v_operatorID NUMBER;
+BEGIN
+ 
+  INSERT INTO bakarioperator (SAWYOBIID)
+  VALUES (p_sawyobiID)
+  RETURNING ID INTO v_operatorID;
+
+ 
+  INSERT INTO BAKARIREGISTER (
+    USERNAME, PASSWORD, OPERATORID,NAMEEMPLOYEE, LASTEMPLOYEE, EMAIL, PHONENUMBER, ROLE, COMPANYID
+  ) VALUES (
+    p_username, p_password, v_operatorID,p_nameEmployee, p_lastEmployee, p_email, p_phoneNumber, p_role, p_companyid
+  );
+  
+  UPDATE bakaristore
+  SET STOREOPERATORID = v_operatorID
+  WHERE ID =  p_sawyobiID;
+
+  
+  COMMIT;
+EXCEPTION
+  WHEN OTHERS THEN
+    
+    ROLLBACK;
+    RAISE;
+END RegisterOperator;
+  
+  
+ 
+    PROCEDURE GetAllUsers(
+    p_companyId IN NUMBER,
+    p_cursor OUT SYS_REFCURSOR
+  ) IS
+  BEGIN
+    OPEN p_cursor FOR
+      SELECT 
+        r.ID AS UserId,
+         r.email As email,
+        r.NAMEEMPLOYEE AS NameEmployee,
+        r.LASTEMPLOYEE AS LastEmployee,
+        r.PHONENUMBER AS PhoneNumber,
+        r.ROLE AS Role,
+        r.COMPANYID AS CompanyId,
+        r.MANAGERID AS ManagerId,
+        r.OPERATORID AS OperatorId,
+        c.NAMEORGANIZATION AS CompanyName
+      FROM 
+        BAKARIREGISTER r
+      LEFT JOIN BAKARICOMPANY c ON r.COMPANYID = c.ID
+      LEFT JOIN BAKARIMANAGER m ON r.MANAGERID = m.ID
+      LEFT JOIN BAKARIOPERATOR o ON r.OPERATORID = o.ID
+      WHERE
+        (p_companyId IS NULL OR r.COMPANYID = p_companyId); 
+  END GetAllUsers;
+      
+      PROCEDURE DeleteUser(
+    p_userId IN NUMBER
+  ) IS
+  BEGIN
+    
+    DELETE FROM BAKARIREGISTER
+    WHERE ID = p_userId;
+
+    
+    COMMIT;
+  EXCEPTION
+    WHEN OTHERS THEN
+      
+      ROLLBACK;
+      RAISE;
+  END DeleteUser;
+  
+  
+  
+  
+      PROCEDURE GetAllUsersID(
+    p_userId IN NUMBER, 
+    p_cursor OUT SYS_REFCURSOR
+) IS
+BEGIN
+  OPEN p_cursor FOR
+    SELECT 
+      r.ID AS UserId,
+      r.email As email,
+      r.NAMEEMPLOYEE AS NameEmployee,
+      r.LASTEMPLOYEE AS LastEmployee,
+      r.PHONENUMBER AS PhoneNumber,
+      r.ROLE AS Role,
+      r.MANAGERID AS ManagerId,
+      r.OPERATORID AS OperatorId,
+      c.NAMEORGANIZATION AS CompanyName
+    FROM 
+      BAKARIREGISTER r
+    LEFT JOIN BAKARICOMPANY c ON r.COMPANYID = c.ID
+    LEFT JOIN BAKARIMANAGER m ON r.MANAGERID = m.ID
+    LEFT JOIN BAKARIOPERATOR o ON r.OPERATORID = o.ID
+    WHERE
+      (p_userId IS NULL OR r.ID = p_userId); 
+END GetAllUsersID;
+
+  
+  
+  
+  
+  
+  
+  
+ 
+    PROCEDURE UpdateUser(
+        p_userId          IN NUMBER,
+       
+        
+        p_nameEmployee    IN VARCHAR2,
+        p_lastEmployee    IN VARCHAR2,
+        p_email           IN VARCHAR2,
+        p_phoneNumber     IN VARCHAR2
+    ) AS
+    BEGIN
+        UPDATE BAKARIREGISTER
+        SET 
+           
+            NAMEEMPLOYEE = p_nameEmployee,
+            LASTEMPLOYEE = p_lastEmployee,
+            EMAIL = p_email,
+            PHONENUMBER = p_phoneNumber
+        WHERE ID = p_userId; 
+
+       
+        IF SQL%ROWCOUNT = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'User not found or no changes were made.');
+        END IF;
+
+        COMMIT;
+    EXCEPTION
+        WHEN OTHERS THEN
+            
+            RAISE;
+    END UpdateUser;
+    
+    
+   PROCEDURE AddStore(
+    p_managerID   IN NUMBER,
+    p_storename   IN VARCHAR2,
+    p_storeadress IN VARCHAR2
+) IS
+BEGIN
+    
+    INSERT INTO BAKARISTORE (
+        STORENAME,
+        STOREADRESS,
+        STOREMANAGERID
+    ) VALUES (
+        p_storename,      
+        p_storeadress,    
+        p_managerID       
+    );
+
+    
+    COMMIT;
+EXCEPTION
+    WHEN OTHERS THEN
+        
+        ROLLBACK;
+        RAISE;
+END AddStore;
+
+
+     PROCEDURE AddProduct(
+     p_storeID   IN NUMBER,
+     p_barcode   IN VARCHAR2,
+     p_productname IN VARCHAR2,
+     p_quantity   IN VARCHAR2,
+     p_dateofentry IN VARCHAR2
+  )is
+  begin
+    INSERT INTO bakariproduct(
+    STOREID,
+    BARCODE,
+    PRODUCTNAME,
+    QUANTITY,
+    DATEOFENTRY
+    
+    )VALUES (
+     p_storeID,  p_barcode,p_productname, p_quantity,p_dateofentry
+           
+    );
+     COMMIT;
+EXCEPTION
+    WHEN OTHERS THEN
+       
+        ROLLBACK;
+        RAISE;
+  
+  
+  end AddProduct;
+
+
+
+
+
+
+
+
+PROCEDURE GetStoreByManagerID (
+    p_managerID IN NUMBER,
+    
+    p_stores_cursor OUT SYS_REFCURSOR
+) IS
+BEGIN
+    OPEN p_stores_cursor FOR
+    SELECT ID, STOREMANAGERID, STORENAME, STOREADRESS
+    FROM BAKARISTORE
+    WHERE STOREMANAGERID = p_managerID;
+END GetStoreByManagerID;
+    
+     PROCEDURE GetAllStoresWithNullOperatorID(
+    p_cursor OUT SYS_REFCURSOR
+  ) IS
+  BEGIN
+    OPEN p_cursor FOR
+      SELECT
+        ID,
+        STORENAME,
+        STOREADRESS,
+        STOREMANAGERID
+      FROM
+        BAKARISTORE
+      WHERE
+        STOREOPERATORID IS NULL;
+  END GetAllStoresWithNullOperatorID;
+
+     
+  
+      PROCEDURE ADD_PRODUCT (
+     p_operatorid   IN NUMBER,
+    p_barcode      IN VARCHAR2,
+    p_productname  IN VARCHAR2,
+    p_quantity     IN NUMBER,
+    p_dateofentry  IN VARCHAR2,
+    p_storeid      IN NUMBER
+) IS
+    v_store_operator_id BAKARISTORE.STOREOPERATORID%TYPE;
+    v_product_id        BAKARIPRODUCT.ID%TYPE;
+    v_productsell_id    BAKARIPRODUCTSELL.ID%TYPE;
+BEGIN
+    
+    SELECT STOREOPERATORID
+    INTO v_store_operator_id
+    FROM BAKARISTORE
+    WHERE ID = p_storeid;
+
+    
+    IF v_store_operator_id = p_operatorid THEN
+        
+        INSERT INTO BAKARIPRODUCTSELL (
+            BARCODE,
+            PRODUCTNAME,
+            QUANTITY,   
+            DATEOFENTRY,
+            STOREID
+        ) VALUES (
+            p_barcode,
+            p_productname,
+            0,          
+            p_dateofentry,
+            p_storeid
+        )
+        RETURNING ID INTO v_productsell_id;  
+
+        
+        INSERT INTO BAKARIPRODUCT (
+            BARCODE,
+            PRODUCTNAME,
+            QUANTITY,   
+            DATEOFENTRY,
+            STOREID,
+            PRODUCTSELLID  
+        ) VALUES (
+            p_barcode,
+            p_productname,
+            p_quantity,  
+            p_dateofentry,
+            p_storeid,
+            v_productsell_id  
+        )
+        RETURNING ID INTO v_product_id;  
+
+        
+        UPDATE BAKARIPRODUCTSELL
+        SET PRODUCTID = v_product_id
+        WHERE ID = v_productsell_id;
+
+    ELSE
+        
+        RAISE_APPLICATION_ERROR(-20001, 'Operator ID does not match the store operator ID.');
+    END IF;
+END ADD_PRODUCT;
+
+
+
+
+    PROCEDURE DELETE_PRODUCT (
+    p_product_id IN NUMBER,
+    p_productsell_id IN NUMBER
+) IS
+BEGIN
+    
+    BEGIN
+        
+        DELETE FROM BAKARIPRODUCTSELL
+        WHERE ID = p_productsell_id;
+
+        
+        DELETE FROM BAKARIPRODUCT
+        WHERE ID = p_product_id;
+
+        
+        COMMIT;
+        
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20002, 'Product ID or Product Sell ID does not exist.');
+        WHEN OTHERS THEN
+            ROLLBACK;  
+            RAISE_APPLICATION_ERROR(-20003, 'An error occurred: ' || SQLERRM);
+    END;
+END DELETE_PRODUCT;
+
+
+
+            PROCEDURE UPDATE_PRODUCT (
+    p_product_id       IN NUMBER,
+    p_productsell_id   IN NUMBER,
+    p_barcode          IN VARCHAR2,
+    p_productname      IN VARCHAR2,
+    p_quantity         IN NUMBER,
+    p_dateofentry      IN VARCHAR2
+) IS
+BEGIN
+   
+    BEGIN
+        
+        UPDATE BAKARIPRODUCTSELL
+        SET BARCODE = p_barcode,
+            PRODUCTNAME = p_productname,
+            QUANTITY = p_quantity,
+            DATEOFENTRY = p_dateofentry
+        WHERE ID = p_productsell_id;
+
+        
+        UPDATE BAKARIPRODUCT
+        SET BARCODE = p_barcode,
+            PRODUCTNAME = p_productname,
+            QUANTITY = p_quantity, 
+            DATEOFENTRY = p_dateofentry
+        WHERE ID = p_product_id;
+
+        
+        COMMIT;
+
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20002, 'Product ID or Product Sell ID does not exist.');
+        WHEN OTHERS THEN
+            ROLLBACK; 
+            RAISE_APPLICATION_ERROR(-20003, 'An error occurred: ' || SQLERRM);
+    END;
+END UPDATE_PRODUCT;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            PROCEDURE UPDATE_PRODUCTI (
+    p_product_id       IN NUMBER,
+    
+    p_barcode          IN VARCHAR2,
+    p_productname      IN VARCHAR2,
+    p_quantity         IN NUMBER,
+    p_dateofentry      IN VARCHAR2
+) IS
+BEGIN
+    -- Start a transaction
+    BEGIN
+     
+        
+
+        -- Update BAKARIPRODUCT table
+        UPDATE BAKARIPRODUCT
+        SET BARCODE = p_barcode,
+            PRODUCTNAME = p_productname,
+            QUANTITY = p_quantity, -- Use the same quantity or a different logic as needed
+            DATEOFENTRY = p_dateofentry
+        WHERE ID = p_product_id;
+
+        -- Commit the transaction
+        COMMIT;
+
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20002, 'Product ID or Product Sell ID does not exist.');
+        WHEN OTHERS THEN
+            ROLLBACK;  -- Rollback in case of an error
+            RAISE_APPLICATION_ERROR(-20003, 'An error occurred: ' || SQLERRM);
+    END;
+END UPDATE_PRODUCTI;
+
+
+
+
+
+
+
+
+
+
+
+
+             PROCEDURE UPDATE_PRODUCTSELL (
+   
+    p_productsell_id   IN NUMBER,
+    p_barcode          IN VARCHAR2,
+    p_productname      IN VARCHAR2,
+    p_quantity         IN NUMBER,
+    p_dateofentry      IN VARCHAR2
+) IS
+BEGIN
+    -- Start a transaction
+    BEGIN
+        -- Update BAKARIPRODUCTSELL table
+        UPDATE BAKARIPRODUCTSELL
+        SET BARCODE = p_barcode,
+            PRODUCTNAME = p_productname,
+            QUANTITY = p_quantity,
+            DATEOFENTRY = p_dateofentry
+        WHERE ID = p_productsell_id;
+
+        -- Update BAKARIPRODUCT table
+       
+
+        -- Commit the transaction
+        COMMIT;
+
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20002, 'Product ID or Product Sell ID does not exist.');
+        WHEN OTHERS THEN
+            ROLLBACK;  -- Rollback in case of an error
+            RAISE_APPLICATION_ERROR(-20003, 'An error occurred: ' || SQLERRM);
+    END;
+END UPDATE_PRODUCTSELL;
+
+
+
+
+
+
+
+
+
+         PROCEDURE DELETE_PRODUCT_BY_ID (
+        p_product_id IN NUMBER,
+        p_success OUT NUMBER
+    ) IS
+    BEGIN
+        -- Initialize success flag
+        p_success := 0;
+
+        -- Check if the product exists
+        DECLARE
+            v_count NUMBER;
+        BEGIN
+            SELECT COUNT(*)
+            INTO v_count
+            FROM BAKARIPRODUCT
+            WHERE ID = p_product_id;
+
+            IF v_count = 0 THEN
+                RAISE_APPLICATION_ERROR(-20001, 'Product with the given ID does not exist.');
+            ELSE
+                -- Delete the product
+                DELETE FROM BAKARIPRODUCT
+                WHERE ID = p_product_id;
+
+                -- Set success flag
+                p_success := 1;
+            END IF;
+        EXCEPTION
+            WHEN OTHERS THEN
+                -- Handle any exception and set failure flag
+                p_success := 0;
+                RAISE;
+        END;
+    END DELETE_PRODUCT_BY_ID;
+    
+    
+    
+    
+   
+
+    
+
+
+          PROCEDURE FilterStoreByOperator(
+    p_store_id           IN NUMBER,
+    p_storeoperator_id   IN NUMBER,
+    o_store_cursor       OUT SYS_REFCURSOR,
+    o_product_cursor     OUT SYS_REFCURSOR,
+    o_productsell_cursor OUT SYS_REFCURSOR
+)
+AS
+BEGIN
+    -- Fetch store details based on store ID and STOREOPERATORID
+    OPEN o_store_cursor FOR
+    SELECT ID, STORENAME, STOREADRESS, STOREOPERATORID
+    FROM BAKARISTORE
+    WHERE ID = p_store_id
+    AND STOREOPERATORID = p_storeoperator_id;
+
+    -- Fetch product details for the store
+    OPEN o_product_cursor FOR
+    SELECT ID, BARCODE, PRODUCTNAME, QUANTITY, DATEOFENTRY, STOREID, PRODUCTSELLID
+    FROM BAKARIPRODUCT
+    WHERE STOREID = p_store_id;
+
+    -- Fetch product sell details for the store
+    OPEN o_productsell_cursor FOR
+    SELECT ID, BARCODE, PRODUCTNAME, QUANTITY, DATEOFENTRY, STOREID, PRODUCTID
+    FROM BAKARIPRODUCTSELL
+    WHERE STOREID = p_store_id;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        -- Optional: You can handle the NO_DATA_FOUND exception for specific cases
+        DBMS_OUTPUT.PUT_LINE('No matching data found for the provided store and operator.');
+    WHEN OTHERS THEN
+        -- Handle all other exceptions
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END FilterStoreByOperator;
+
+         
+
+                                     
+       PROCEDURE FilterStoreByManager(
+    p_store_id           IN NUMBER,
+    o_store_cursor       OUT SYS_REFCURSOR,
+    o_product_cursor     OUT SYS_REFCURSOR,
+    o_productsell_cursor OUT SYS_REFCURSOR
+)
+AS
+BEGIN
+    -- Fetch store details based on store ID and STOREOPERATORID
+    OPEN o_store_cursor FOR
+    SELECT ID, STORENAME, STOREADRESS, STOREOPERATORID
+    FROM BAKARISTORE
+    WHERE ID = p_store_id;
+
+    -- Fetch product details for the store
+    OPEN o_product_cursor FOR
+    SELECT ID, BARCODE, PRODUCTNAME, QUANTITY, DATEOFENTRY, STOREID, PRODUCTSELLID
+    FROM BAKARIPRODUCT
+    WHERE STOREID = p_store_id;
+
+    -- Fetch product sell details for the store
+    OPEN o_productsell_cursor FOR
+    SELECT ID, BARCODE, PRODUCTNAME, QUANTITY, DATEOFENTRY, STOREID, PRODUCTID
+    FROM BAKARIPRODUCTSELL
+    WHERE STOREID = p_store_id;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        -- Optional: Handle the NO_DATA_FOUND exception for specific cases
+        DBMS_OUTPUT.PUT_LINE('No matching data found for the provided store and operator.');
+    WHEN OTHERS THEN
+        -- Handle all other exceptions
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END FilterStoreByManager;
+
+
+
+
+
+
+
+
+
+
+                            
+        PROCEDURE GetStoreDetailsByOperator (
+        p_storeoperator_id  IN  NUMBER,
+        o_store_cursor      OUT SYS_REFCURSOR
+    ) AS
+    BEGIN
+        OPEN o_store_cursor FOR
+        SELECT ID, STORENAME, STOREADRESS, STOREOPERATORID
+        FROM BAKARISTORE
+        WHERE STOREOPERATORID = p_storeoperator_id;
+    END GetStoreDetailsByOperator;
+
+        
+    
+    
+    
+        
+
+        
+
+END PKG_BAKARI_USER_REGISTER;

@@ -1,0 +1,195 @@
+CREATE OR REPLACE NONEDITIONABLE PACKAGE PKG_BAKARI_USER_REGISTER IS
+  PROCEDURE RegisterCompany(
+    p_username           IN VARCHAR2,
+    p_password           IN VARCHAR2,
+    p_nameEmployee       IN VARCHAR2,
+    p_lastEmployee       IN VARCHAR2,
+    p_nameOrganization   IN VARCHAR2,
+    p_organizationAddress IN VARCHAR2,
+    p_email              IN VARCHAR2,
+    p_phoneNumber        IN VARCHAR2,
+    p_role               IN NUMBER
+  );
+    PROCEDURE LoginCompany(
+     p_username    IN  VARCHAR2,
+    p_password    IN  VARCHAR2,
+    p_user_id     OUT NUMBER,
+    p_role        OUT NUMBER,
+    p_manager_id  OUT NUMBER,
+    p_operator_id OUT NUMBER,
+    p_company_id  OUT NUMBER
+  );
+  
+ PROCEDURE RegisterManager(
+    p_username      IN VARCHAR2,
+    p_password      IN VARCHAR2,
+    p_nameEmployee  IN VARCHAR2,
+    p_lastEmployee  IN VARCHAR2,
+    p_email         IN VARCHAR2,
+    p_phoneNumber   IN VARCHAR2,
+    p_companyid     IN NUMBER,
+    p_role          IN NUMBER
+  );
+  
+  PROCEDURE  RegisterOperator(
+  p_username           IN VARCHAR2,
+  p_password           IN VARCHAR2,
+  p_nameEmployee       IN VARCHAR2,	
+  p_lastEmployee       IN VARCHAR2,
+  p_email              IN VARCHAR2,
+  p_phoneNumber        IN VARCHAR2,
+  p_role               IN NUMBER,
+  p_companyid          IN NUMBER,
+  p_sawyobiID          IN NUMBER
+    );
+    
+      PROCEDURE GetAllUsers(
+    p_companyId IN NUMBER,
+    p_cursor OUT SYS_REFCURSOR
+  );
+  
+  
+   PROCEDURE GetAllUsersID(
+    p_userId IN NUMBER, -- Filter based on UserId
+    p_cursor OUT SYS_REFCURSOR
+);
+  
+  PROCEDURE DeleteUser(
+    p_userId IN NUMBER
+  );
+  
+  
+  
+  PROCEDURE UpdateUser(
+        p_userId          IN NUMBER,
+       
+       
+        p_nameEmployee    IN VARCHAR2,
+        p_lastEmployee    IN VARCHAR2,
+        p_email           IN VARCHAR2,
+        p_phoneNumber     IN VARCHAR2
+    );
+   PROCEDURE AddStore(
+     p_managerID   IN NUMBER,
+    p_storename   IN VARCHAR2,
+    p_storeadress IN VARCHAR2
+  );
+  
+  
+  PROCEDURE GetStoreByManagerID (
+    p_managerID IN NUMBER,
+    p_stores_cursor OUT SYS_REFCURSOR
+);
+
+
+     PROCEDURE AddProduct(
+     p_storeID   IN NUMBER,
+     p_barcode   IN VARCHAR2,
+     p_productname IN VARCHAR2,
+     p_quantity   IN VARCHAR2,
+     p_dateofentry IN VARCHAR2
+  );
+  
+  
+  PROCEDURE GetAllStoresWithNullOperatorID(
+    p_cursor OUT SYS_REFCURSOR
+  );
+  
+  
+  
+    PROCEDURE ADD_PRODUCT (
+    p_operatorid   IN NUMBER,
+    p_barcode      IN VARCHAR2,
+    p_productname  IN VARCHAR2,
+    p_quantity     IN NUMBER,
+    p_dateofentry  IN VARCHAR2,
+    p_storeid      IN NUMBER
+    );
+    
+    
+    
+     PROCEDURE DELETE_PRODUCT (
+    p_product_id IN NUMBER,
+    p_productsell_id IN NUMBER
+);
+
+
+    PROCEDURE UPDATE_PRODUCT (
+    p_product_id       IN NUMBER,
+    p_productsell_id   IN NUMBER,
+    p_barcode          IN VARCHAR2,
+    p_productname      IN VARCHAR2,
+    p_quantity         IN NUMBER,
+    p_dateofentry      IN VARCHAR2
+);
+    
+    
+PROCEDURE UPDATE_PRODUCTI (
+    p_product_id       IN NUMBER,
+    
+    p_barcode          IN VARCHAR2,
+    p_productname      IN VARCHAR2,
+    p_quantity         IN NUMBER,
+    p_dateofentry      IN VARCHAR2
+);
+
+
+
+     PROCEDURE UPDATE_PRODUCTSELL (
+   
+    p_productsell_id   IN NUMBER,
+    p_barcode          IN VARCHAR2,
+    p_productname      IN VARCHAR2,
+    p_quantity         IN NUMBER,
+    p_dateofentry      IN VARCHAR2
+);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  
+
+    
+    
+   
+    
+    
+   PROCEDURE FilterStoreByOperator(
+        p_store_id IN NUMBER,
+        p_storeoperator_id IN NUMBER,
+        o_store_cursor OUT SYS_REFCURSOR,
+        o_product_cursor OUT SYS_REFCURSOR,
+        o_productsell_cursor OUT SYS_REFCURSOR
+    );
+    
+    
+    
+       PROCEDURE FilterStoreByManager(
+    p_store_id           IN NUMBER,
+    
+    o_store_cursor       OUT SYS_REFCURSOR,
+    o_product_cursor     OUT SYS_REFCURSOR,
+    o_productsell_cursor OUT SYS_REFCURSOR
+);
+    
+    
+    
+    
+    
+     PROCEDURE GetStoreDetailsByOperator (
+        p_storeoperator_id  IN  NUMBER,
+        o_store_cursor      OUT SYS_REFCURSOR
+    );
+    
+ 
+
+END PKG_BAKARI_USER_REGISTER;
